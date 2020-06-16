@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bufio"
+	"encoding/csv"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -31,7 +31,11 @@ func main() {
 		return
 	}
 
-	baseDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+	wd, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	baseDir, _ := filepath.Abs(wd)
 
 	absCsvFilename := getAbsFile(baseDir, *csvfilename)
 	absTemplateFilename := getAbsFile(baseDir, *templatefilename)
@@ -42,13 +46,19 @@ func main() {
 		log.Fatal(err)
 	}
 
-	template := readTemplate(absTemplateFilename)
+	template, err := readTemplate(absTemplateFilename)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	if *mode == "stdio" {
 		updated := processLines(lines, template)
 		fmt.Println(updated)
 	} else {
-		processLinesFileOutput(lines, template, absOutputFilePattern)
+		err = processLinesFileOutput(lines, template, absOutputFilePattern)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 }
@@ -61,30 +71,28 @@ func getAbsFile(baseDir, path string) string {
 	return abspath
 }
 
-func readCsv(filename string) ([]string, error) {
+func readCsv(filename string) ([][]string, error) {
 	f, err := os.Open(filename)
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
 
-	lines := []string{}
-	scanner := bufio.NewScanner(f)
+	rdr := csv.NewReader(f)
 
-	for scanner.Scan() {
-		var txt = scanner.Text()
-		lines = append(lines, txt)
+	return rdr.ReadAll()
+}
+
+func readTemplate(filename string) (string, error) {
+	b, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return "", err
 	}
-
-	return lines, nil
+	template := string(b)
+	return template, nil
 }
 
-func readTemplate(filename string) (template string) {
-	b, _ := ioutil.ReadFile(filename)
-	template = string(b)
-	return
-}
-
-func processLines(lines []string, template string) (fullReplace string) {
+func processLines(lines [][]string, template string) (fullReplace string) {
 	for i, line := range lines {
 		fullReplace = fullReplace + processLine(line, template, i)
 	}
@@ -92,25 +100,27 @@ func processLines(lines []string, template string) (fullReplace string) {
 	return
 }
 
-func processLine(line string, template string, num int) string {
-	s := strings.Split(line, ",")
+func processLine(s []string, template string, num int) string {
 	tmp := template
 	for i := range s {
 		index := fmt.Sprintf("{%v}", i)
-		tmp = strings.Replace(tmp, index, s[i], -1)
+		tmp = strings.Replace(tmp, index, strings.Trim(s[i], " "), -1)
 		tmp = strings.Replace(tmp, "{index}", strconv.Itoa(num), -1)
 	}
 
 	return tmp
 }
 
-func processLinesFileOutput(lines []string, template string, outputfilenamepattern string) {
+func processLinesFileOutput(lines [][]string, template string, outputfilenamepattern string) error {
 	for i, line := range lines {
 		output := processLine(line, template, i)
 		outputFilename := processLine(line, outputfilenamepattern, i)
 
-		if err := ioutil.WriteFile(outputFilename, []byte(output), os.ModePerm); err != nil {
-			fmt.Println(err)
+		err := ioutil.WriteFile(outputFilename, []byte(output), os.ModePerm)
+		if err != nil {
+			return err
 		}
 	}
+
+	return nil
 }
