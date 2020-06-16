@@ -15,7 +15,7 @@ import (
 func main() {
 	csvfilename := flag.String("c", "", "input csv filename")
 	templatefilename := flag.String("t", "", "template filename")
-	mode := flag.String("m", "stdio", "output mode. stdio or file")
+	mode := flag.String("m", "stdout", "output mode. stdout or file")
 	outputfilepattern := flag.String("o", "{0}.txt", "file output mode pattern. like {0}.txt")
 	flag.Parse()
 
@@ -51,7 +51,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if *mode == "stdio" {
+	if *mode == "stdout" {
 		updated := processLines(lines, template)
 		fmt.Println(updated)
 	} else {
