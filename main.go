@@ -4,7 +4,6 @@ import (
 	"encoding/csv"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -84,7 +83,7 @@ func readCsv(filename string) ([][]string, error) {
 }
 
 func readTemplate(filename string) (string, error) {
-	b, err := ioutil.ReadFile(filename)
+	b, err := os.ReadFile(filename)
 	if err != nil {
 		return "", err
 	}
@@ -116,7 +115,7 @@ func processLinesFileOutput(lines [][]string, template string, outputfilenamepat
 		output := processLine(line, template, i)
 		outputFilename := processLine(line, outputfilenamepattern, i)
 
-		err := ioutil.WriteFile(outputFilename, []byte(output), os.ModePerm)
+		err := os.WriteFile(outputFilename, []byte(output), os.ModePerm)
 		if err != nil {
 			return err
 		}
