@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 func main() {
@@ -106,6 +108,8 @@ func processLine(s []string, template string, num int) string {
 		tmp = strings.Replace(tmp, index, strings.Trim(s[i], " "), -1)
 		tmp = strings.Replace(tmp, "{index}", strconv.Itoa(num), -1)
 	}
+
+	tmp = strings.Replace(tmp, "{newguid}", uuid.New().String(), -1)
 
 	return tmp
 }
